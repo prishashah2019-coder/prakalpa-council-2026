@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRAKALPA - New Council Reveal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000411; /* Darker space blue */
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .title-font {
+            font-family: 'Rajdhani', sans-serif;
+        }
+        
+        #reveal-card {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncier transition */
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4), 0 0 40px rgba(0, 255, 255, 0.3); /* Stronger glow */
+            border-width: 2px; /* Thicker border */
+        }
+
+        .scanning-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px; /* Thicker line */
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.9), transparent); /* Brighter line */
+            animation: scan 2.5s infinite ease-in-out; /* Slightly faster scan */
+            opacity: 0;
+        }
+        
+        #reveal-card.is-revealing .scanning-line {
+            opacity: 1;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; }
+            50% { top: 99%; }
+            100% { top: 0%; }
+        }
+
+        .final-grid-card {
+            transition: all 0.5s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .final-grid-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .final-grid-card:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 10px 20px rgba(0, 255, 255, 0.2);
+        }
+        
+        /* Animation for revealing text/photo */
+        .reveal-item {
+            opacity: 0;
+            transform: translateY(30px); /* More pronounced initial displacement */
+            transition: opacity 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncier entry */
+        }
+        #reveal-card.is-revealing .reveal-item {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* Staggered animation */
+        #reveal-card.is-revealing #reveal-position { transition-delay: 100ms; }
+        #reveal-card.is-revealing #reveal-photo-container,
+        #reveal-card.is-revealing #spotlight-photos { transition-delay: 300ms; }
+        #reveal-card.is-revealing #reveal-name { transition-delay: 500ms; }
+
+
+        /* Previous -> new handover */
+        .person { display: flex; flex-direction: column; align-items: center; }
+        .person img { object-fit: cover; border-radius: 9999px; }
+        .person.prev img { width: 6.5rem; height: 6.5rem; border: 3px solid rgba(156, 163, 175, 0.6); filter: grayscale(35%); }
+        .person.new img { width: 10rem; height: 10rem; border: 4px solid #22d3ee; box-shadow: 0 0 25px rgba(34, 211, 238, 0.45); }
+        .person .pname { font-family: 'Rajdhani', sans-serif; font-weight: 700; margin-top: 0.6rem; }
+        .person.prev .pname { color: #d1d5db; font-size: 1.25rem; }
+        .person.new .pname { color: #fff; font-size: 2rem; }
+        .person .prole { color: #9ca3af; font-size: 0.75rem; }
+        .mystery { width: 10rem; height: 10rem; border-radius: 9999px; border: 4px dashed rgba(34, 211, 238, 0.5); display: flex; align-items: center; justify-content: center; font-family: 'Rajdhani', sans-serif; font-size: 4.5rem; color: rgba(34, 211, 238, 0.7); animation: pulse-q 1.6s ease-in-out infinite; }
+        @keyframes pulse-q { 0%, 100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.06); opacity: 1; } }
+        #new-people .person.new { animation: pop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+        @keyframes pop-in { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+        @media (max-width: 767px) { .handover-arrow { transform: rotate(90deg); } }
+    </style>
+</head>
+<body class="p-4">
+    <canvas id="bg-canvas"></canvas>
+    <div class="content-wrapper">
+        <!-- Start Screen --><div id="start-screen" class="text-center transition-opacity duration-1000">
+            <div class="flex flex-col md:flex-row items-center justify-center mb-6 gap-6">
+                <img src="LDCE_LOGO.png" alt="LDCE Logo" class="h-24 md:h-32 opacity-90">
+                <img src="IMG_20250721_230732.png" alt="PRAKALPA Logo" class="h-24 md:h-32 opacity-90">
+            </div>
+            <h1 class="title-font text-5xl md:text-8xl font-black tracking-widest text-white uppercase" style="text-shadow: 0 0 25px rgba(173, 216, 230, 0.9);">
+                PRAKALPA
+            </h1>
+            <p class="text-lg md:text-xl text-gray-300 mt-2">LDCE Space Club Council Reveal</p>
+            <button id="start-btn" class="mt-12 bg-cyan-500 text-black title-font font-bold py-3 px-8 rounded-lg text-xl hover:bg-cyan-400 hover:scale-105 transition-all duration-300 shadow-lg shadow-cyan-500/50 hover:shadow-cyan-400/80">
+                Begin The Ceremony
+            </button>
+            <p class="text-gray-400 mt-4 text-sm">Tap or Click to Begin</p>
+        </div>
+
+        <!-- Reveal Area --><div id="reveal-area" class="hidden w-full h-full flex flex-col items-center justify-center">
+            <div id="reveal-card" class="w-full max-w-5xl bg-gray-900 bg-opacity-70 rounded-2xl shadow-2xl border border-cyan-400/30 p-8 text-center opacity-0 transform scale-75 relative overflow-hidden">
+                <div class="scanning-line"></div>
+                <p id="reveal-position" class="reveal-item text-cyan-300 text-3xl title-font mb-6"></p>
+                <div id="reveal-photo-container" class="reveal-item flex flex-col md:flex-row justify-center items-center gap-6 md:gap-10 min-h-[200px]">
+                    <div id="prev-side" class="flex flex-col items-center">
+                        <p class="text-gray-400 uppercase tracking-[0.3em] text-xs mb-4">Previous</p>
+                        <div id="prev-people" class="flex flex-wrap justify-center gap-4"></div>
+                    </div>
+                    <div id="handover-arrow" class="handover-arrow text-cyan-300 text-5xl title-font">&#10140;</div>
+                    <div id="new-side" class="flex flex-col items-center">
+                        <p class="text-cyan-300 uppercase tracking-[0.3em] text-xs mb-4">New</p>
+                        <div id="new-people" class="flex flex-wrap justify-center gap-6"></div>
+                    </div>
+                </div>
+                <div id="spotlight" class="hidden">
+                    <div id="spotlight-photos" class="reveal-item flex justify-center items-center gap-6 mb-6 min-h-[200px]"></div>
+                    <h2 id="reveal-name" class="reveal-item title-font text-4xl font-bold text-white"></h2>
+                </div>
+            </div>
+             <div id="reveal-instructions" class="text-gray-400 absolute bottom-10 opacity-0 transition-opacity duration-500">Tap to proceed, or use ←/→ keys to navigate</div>
+        </div>
+        
+        <!-- Final Grid --><div id="final-screen" class="hidden text-center transition-opacity duration-1000 opacity-0">
+            <h2 class="title-font text-4xl md:text-5xl font-bold text-white mb-10">Congratulations to the New Council!</h2>
+            <div id="final-grid" class="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8 max-w-6xl mx-auto">
+                <!-- Final council members will be populated here --></div>
+        </div>
+    </div>
+
+
+    <script>
+        const council = [
+            // previous: the outgoing head(s) for this position, shown first; leave empty for a new position
+            { position: 'Treasurer & Content Head', names: ['Hetaxi'], photo: 'photos/photo4.jpg',
+              previous: [{ name: 'Devang', role: 'Treasurer', photo: 'previous/devang.png' }, { name: 'Khushi', role: 'Content Head', photo: 'previous/khushi.png' }] },
+            { position: 'Design Head', names: ['Maitree'], photo: 'photos/photo5.jpg',
+              previous: [{ name: 'Pradip', photo: 'previous/pradip.png' }] },
+            { position: 'Social Head', names: ['Dhruv'], photo: 'photos/photo2.jpg',
+              previous: [{ name: 'Mahi', photo: 'previous/mahi.png' }] },
+            { position: 'Management Head', names: ['Meet'], photo: 'photos/photo8.jpg',
+              previous: [{ name: 'Bhavya', photo: 'previous/bhavya.png' }] },
+            { position: 'Web Head', names: ['Hensi'], photo: 'photos/photo3.jpg',
+              previous: [{ name: 'Prisha', photo: 'previous/prisha.png' }] },
+            { position: 'Tech Head', names: ['Taxx'], photo: null,
+              previous: [{ name: 'Vatsal', photo: 'previous/vatsal.png' }] },
+            { position: 'Core Members', names: ['Harsh', 'Yash'], photo: [null, 'photos/photo7.jpg'],
+              previous: [] },
+            { position: 'Club Heads', names: ['Axit', 'Prit'], photo: ['photos/photo1.jpg', 'photos/photo6.jpg'],
+              previous: [{ name: 'Kruti', photo: 'previous/kruti.png' }, { name: 'Vansh', photo: 'previous/vansh.png' }, { name: 'Jayveer', photo: 'previous/jayveer.png' }] }
+        ];
+
+        // Positions listed first on the final screen
+        const finalFirst = ['Club Heads'];
+
+        // Placeholder avatar (initials) used when a photo is missing
+        // kind: 'round' (square face crop for circles) or 'card' (portrait crop for the big card)
+        function photoSrc(src, name, kind = 'round') {
+            if (src) return src.replace(/^photos\//, `photos/${kind}/`);
+            const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="100%" height="100%" fill="#0b1a2e"/><text x="50%" y="54%" font-family="Rajdhani,sans-serif" font-size="160" font-weight="700" fill="#22d3ee" text-anchor="middle" dominant-baseline="middle">${initials}</text></svg>`;
+            return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        }
+
+        // --- DOM Elements ---
+        const startScreen = document.getElementById('start-screen');
+        const startBtn = document.getElementById('start-btn');
+        const revealArea = document.getElementById('reveal-area');
+        const revealCard = document.getElementById('reveal-card');
+        const revealPosition = document.getElementById('reveal-position');
+        const revealPhotoContainer = document.getElementById('reveal-photo-container');
+        const finalScreen = document.getElementById('final-screen');
+        const finalGrid = document.getElementById('final-grid');
+        const revealInstructions = document.getElementById('reveal-instructions');
+        
+        // --- State ---
+        // Each position: show the previous head(s), reveal the new one(s), then the new head's own card.
+        // Positions with no previous holder go straight to the card.
+        const steps = council.flatMap((member, i) =>
+            member.previous.length
+                ? [{ i, stage: 'previous' }, { i, stage: 'new' }, { i, stage: 'card' }]
+                : [{ i, stage: 'card' }]);
+        let currentMemberIndex = -1; // index into steps
+        let shownMember = -1;        // council index currently on the card
+        let shownStage = null;       // stage currently on the card
+        let isCeremonyStarted = false;
+        let isFinalScreenShown = false; // New state to prevent key events after end
+
+        const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+        // --- Main Functions ---
+        async function startCeremony() {
+            if (isCeremonyStarted) return;
+            isCeremonyStarted = true;
+            
+            startBtn.disabled = true;
+            startScreen.style.opacity = '0';
+            await sleep(1000);
+            startScreen.classList.add('hidden');
+            revealArea.classList.remove('hidden');
+            
+            // Show instructions
+            setTimeout(() => { revealInstructions.style.opacity = '1'; }, 500);
+        }
+
+        const prevPeople = document.getElementById('prev-people');
+        const newPeople = document.getElementById('new-people');
+        const prevSide = document.getElementById('prev-side');
+        const handoverArrow = document.getElementById('handover-arrow');
+        const spotlight = document.getElementById('spotlight');
+        const spotlightPhotos = document.getElementById('spotlight-photos');
+        const revealName = document.getElementById('reveal-name');
+
+        function renderSpotlight(member) {
+            spotlightPhotos.innerHTML = '';
+            revealName.textContent = member.names.join(' & ');
+            const photos = Array.isArray(member.photo) ? member.photo : [member.photo];
+            photos.forEach((photoUrl, i) => {
+                const img = document.createElement('img');
+                img.src = photoSrc(photoUrl, member.names[i], photos.length > 1 ? 'round' : 'card');
+                img.alt = member.names[i];
+                img.className = photos.length > 1
+                    ? "w-36 h-36 md:w-48 md:h-48 rounded-full border-4 border-cyan-400 object-cover shadow-lg shadow-cyan-500/30"
+                    : "w-auto max-w-sm h-[min(400px,55vh)] aspect-[4/5] rounded-lg border-4 border-cyan-400 object-cover shadow-lg shadow-cyan-500/30";
+                spotlightPhotos.appendChild(img);
+            });
+        }
+
+        function personHTML(kind, name, photo, role) {
+            return `<div class="person ${kind}">
+                        <img src="${photoSrc(photo, name)}" alt="${name}">
+                        <span class="pname">${name}</span>
+                        ${role ? `<span class="prole">${role}</span>` : ''}
+                    </div>`;
+        }
+
+        function renderNew(member, stage) {
+            if (stage === 'previous') {
+                newPeople.innerHTML = member.names.map(() => '<div class="mystery">?</div>').join('');
+                return;
+            }
+            const photos = Array.isArray(member.photo) ? member.photo : [member.photo];
+            newPeople.innerHTML = member.names.map((name, i) => personHTML('new', name, photos[i])).join('');
+        }
+
+        async function displayMember(index) {
+            // Hide instructions once interaction begins
+            revealInstructions.style.opacity = '0';
+
+            const step = steps[index];
+
+            // Same position, just moving between "previous" and "new": swap in place
+            if (step && step.i === shownMember && step.stage !== 'card' && shownStage !== 'card'
+                && revealCard.style.opacity === '1') {
+                renderNew(council[step.i], step.stage);
+                shownStage = step.stage;
+                return;
+            }
+
+            // Hide the current card if it's visible
+            if (revealCard.style.opacity === '1') {
+                revealCard.style.opacity = '0';
+                revealCard.style.transform = 'scale(0.75)';
+                await sleep(500);
+                revealCard.classList.remove('is-revealing');
+            }
+            shownMember = -1;
+
+            // Check if we are at the end of the reveal
+            if (index >= steps.length) {
+                revealArea.classList.add('hidden');
+                showFinalTeam();
+                return;
+            }
+
+            // Make sure we are not going before the start
+            if (index < 0) {
+                 currentMemberIndex = -1; // reset index
+                 revealInstructions.style.opacity = '1'; // show instructions again
+                 return;
+            }
+
+            const member = council[step.i];
+            revealPosition.textContent = member.position;
+
+            const isCard = step.stage === 'card';
+            revealPhotoContainer.classList.toggle('hidden', isCard);
+            spotlight.classList.toggle('hidden', !isCard);
+            if (isCard) {
+                renderSpotlight(member);
+            } else {
+                prevPeople.innerHTML = member.previous.map(p => personHTML('prev', p.name, p.photo, p.role)).join('');
+                renderNew(member, step.stage);
+            }
+
+            // Show the new card with animation
+            shownMember = step.i;
+            shownStage = step.stage;
+            revealCard.classList.add('is-revealing');
+            revealCard.style.opacity = '1';
+            revealCard.style.transform = 'scale(1)';
+        }
+
+        function showFinalTeam() {
+            if (isFinalScreenShown) return; // Prevent this from running twice
+            isFinalScreenShown = true;
+
+            // One card per person, so group positions (Core Members, Club Heads) show everyone individually
+            const ordered = [...council].sort((a, b) =>
+                (finalFirst.includes(b.position) ? 1 : 0) - (finalFirst.includes(a.position) ? 1 : 0));
+            const people = ordered.flatMap(member => member.names.map((name, i) => ({
+                position: member.names.length > 1 ? member.position.replace(/s$/, '') : member.position,
+                names: [name],
+                photo: Array.isArray(member.photo) ? member.photo[i] : member.photo
+            })));
+
+            people.forEach((member, index) => {
+                const card = document.createElement('div');
+                card.className = 'final-grid-card bg-gray-900/50 p-4 rounded-lg text-center border border-cyan-500/20 flex flex-col justify-between';
+                
+                let photoHTML = '';
+                if (Array.isArray(member.photo)) {
+                    // For group positions, show all photos side by side
+                    photoHTML = `<div class="flex justify-center items-center -space-x-4 h-24 mx-auto mb-2">`;
+                    member.photo.forEach((p_url, i) => {
+                        photoHTML += `<img src="${photoSrc(p_url, member.names[i])}" alt="${member.names[i]}" class="w-16 h-16 rounded-full border-2 border-white object-cover shadow-md">`;
+                    });
+                    photoHTML += `</div>`;
+                } else {
+                    // For single members
+                    photoHTML = `<img src="${photoSrc(member.photo, member.names[0])}" alt="${member.names[0]}" class="w-24 h-24 rounded-full mx-auto border-2 border-cyan-400 object-cover mb-2">`;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        ${photoHTML}
+                        <h3 class="mt-2 text-white font-bold text-lg title-font">${member.names.join(', ')}</h3>
+                    </div>
+                    <p class="text-cyan-300 text-sm">${member.position}</p>
+                `;
+                finalGrid.appendChild(card);
+                 setTimeout(() => {
+                    card.classList.add('visible');
+                }, index * 150);
+            });
+            finalScreen.classList.remove('hidden');
+            setTimeout(() => finalScreen.style.opacity = '1', 100);
+        }
+
+        // --- Event Listeners ---
+        startBtn.onclick = startCeremony;
+        
+        function handleNext() {
+            if (!isCeremonyStarted || isFinalScreenShown) return;
+            currentMemberIndex++;
+            displayMember(currentMemberIndex);
+        }
+
+        function handlePrev() {
+            if (!isCeremonyStarted || isFinalScreenShown) return;
+            if (currentMemberIndex >= 0) { // Can't go back further
+                currentMemberIndex--;
+                displayMember(currentMemberIndex);
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.code === 'Space' && !isCeremonyStarted) {
+                event.preventDefault();
+                startCeremony();
+            }
+
+            // Stop handling keys if ceremony ended
+            if (!isCeremonyStarted || isFinalScreenShown) return;
+
+            if (event.code === 'ArrowRight') {
+                handleNext();
+            } else if (event.code === 'ArrowLeft') {
+                handlePrev();
+            }
+        }
+        
+        window.addEventListener('keydown', handleKeyPress);
+        revealArea.addEventListener('click', handleNext);
+
+
+        // --- Background Animation Script ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [], shootingStars = [], numStars = 500;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function init() {
+            resizeCanvas();
+            stars = [];
+            for (let i = 0; i < numStars; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 1.5 + 0.5,
+                    alpha: Math.random(),
+                    twinkleSpeed: Math.random() * 0.03,
+                    twinkleDirection: 1,
+                    speedY: Math.random() * 0.2 + 0.1
+                });
+            }
+            shootingStars = [];
+        }
+
+        function draw() {
+            if(!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            stars.forEach(star => {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.fill();
+
+                star.y += star.speedY;
+                if (star.y > canvas.height) {
+                    star.y = 0;
+                    star.x = Math.random() * canvas.width;
+                }
+
+                star.alpha += star.twinkleSpeed * star.twinkleDirection;
+                if (star.alpha > 1 || star.alpha < 0.2) star.twinkleDirection *= -1;
+            });
+            
+            shootingStars.forEach((ss, index) => {
+                ctx.beginPath();
+                ctx.moveTo(ss.x, ss.y);
+                ctx.lineTo(ss.x - ss.len, ss.y + ss.len);
+                ctx.strokeStyle = `rgba(255, 255, 255, ${ss.alpha})`;
+                ctx.lineWidth = ss.width;
+                ctx.stroke();
+
+                ss.x += ss.speedX;
+                ss.y -= ss.speedY;
+                ss.alpha -= 0.02;
+
+                if (ss.alpha <= 0) shootingStars.splice(index, 1);
+            });
+
+            if (Math.random() < 0.01 && shootingStars.length < 3) {
+                shootingStars.push({
+                    x: Math.random() * canvas.width * 1.5, y: Math.random() * canvas.height * 0.5,
+                    len: Math.random() * 80 + 20, speedX: Math.random() * 5 + 5,
+                    speedY: Math.random() * 5 + 5, width: Math.random() * 2 + 0.5, alpha: 1
+                });
+            }
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', init);
+        init();
+        draw();
+    </script>
+</body>
+</html>
+
