@@ -194,6 +194,8 @@
 
         // Positions listed first on the final screen
         const finalFirst = ['Club Head'];
+        // Exact order for the first cards on the final screen (everyone else follows in reveal order)
+        const finalLeadNames = ['Axit', 'Prit'];
 
         // Placeholder avatar (initials) used when a photo is missing
         // kind: 'round' (square face crop for circles) or 'card' (portrait crop for the big card)
@@ -359,7 +361,8 @@
                 if (byName.has(name)) byName.get(name).position += ' & ' + position;
                 else byName.set(name, { position, names: [name], photo });
             }));
-            const people = [...byName.values()];
+            const lead = name => { const k = finalLeadNames.indexOf(name); return k === -1 ? finalLeadNames.length : k; };
+            const people = [...byName.values()].sort((a, b) => lead(a.names[0]) - lead(b.names[0]));
 
             people.forEach((member, index) => {
                 const card = document.createElement('div');
