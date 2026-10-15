@@ -112,7 +112,7 @@
         .person .prole { color: #9ca3af; font-size: 0.75rem; }
         .mystery { width: 10rem; height: 10rem; border-radius: 9999px; border: 4px dashed rgba(34, 211, 238, 0.5); display: flex; align-items: center; justify-content: center; font-family: 'Rajdhani', sans-serif; font-size: 4.5rem; color: rgba(34, 211, 238, 0.7); animation: pulse-q 1.6s ease-in-out infinite; }
         @keyframes pulse-q { 0%, 100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.06); opacity: 1; } }
-        #new-people .person.new { animation: pop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+        #new-people .person.pop { animation: pop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
         @keyframes pop-in { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
         @media (max-width: 767px) { .handover-arrow { transform: rotate(90deg); } }
     </style>
@@ -169,12 +169,15 @@
     <script>
         const council = [
             // previous: the outgoing head(s) for this position, shown first; leave empty for a new position
-            { position: 'Core Members', names: ['Harsh', 'Yash'], photo: ['photos/photo10.jpg', 'photos/photo7.jpg'],
+            // With several new names, each is revealed on its own key press, in the order listed.
+            { position: 'Core Member', names: ['Harsh'], photo: 'photos/photo10.jpg',
               previous: [] },
-            { position: 'Treasurer & Content Head', names: ['Hetaxi'], photo: 'photos/photo4.jpg',
-              previous: [{ name: 'Devang', role: 'Treasurer', photo: 'previous/devang.png' }, { name: 'Khushi', role: 'Content Head', photo: 'previous/khushi.png' }] },
+            { position: 'Treasurer', names: ['Axit'], photo: 'photos/photo1.jpg',
+              previous: [{ name: 'Devang', photo: 'previous/devang.png' }] },
             { position: 'Design Head', names: ['Maitree'], photo: 'photos/photo5.jpg',
               previous: [{ name: 'Pradip', photo: 'previous/pradip.png' }] },
+            { position: 'Content Head', names: ['Yash'], photo: 'photos/photo7.jpg',
+              previous: [{ name: 'Khushi', photo: 'previous/khushi.png' }] },
             { position: 'Social Head', names: ['Dhruv'], photo: 'photos/photo2.jpg',
               previous: [{ name: 'Mahi', photo: 'previous/mahi.png' }] },
             { position: 'Management Head', names: ['Meet'], photo: 'photos/photo8.jpg',
@@ -183,7 +186,7 @@
               previous: [{ name: 'Prisha', photo: 'previous/prisha.png' }] },
             { position: 'Tech Head', names: ['Taksh'], photo: 'photos/photo9.jpg',
               previous: [{ name: 'Vatsal', photo: 'previous/vatsal.png' }] },
-            { position: 'Club Heads', names: ['Axit', 'Prit'], photo: ['photos/photo1.jpg', 'photos/photo6.jpg'],
+            { position: 'Club Heads', names: ['Prit', 'Axit'], photo: ['photos/photo6.jpg', 'photos/photo1.jpg'],
               previous: [{ name: 'Kruti', photo: 'previous/kruti.png' }, { name: 'Vansh', photo: 'previous/vansh.png' }, { name: 'Jayveer', photo: 'previous/jayveer.png' }] }
         ];
 
@@ -215,7 +218,9 @@
         // Positions with no previous holder go straight to the card.
         const steps = council.flatMap((member, i) =>
             member.previous.length
-                ? [{ i, stage: 'previous' }, { i, stage: 'new' }, { i, stage: 'card' }]
+                ? [{ i, stage: 'previous' },
+                   ...member.names.map((_, k) => ({ i, stage: 'new', count: k + 1 })),
+                   { i, stage: 'card' }]
                 : [{ i, stage: 'card' }]);
         let currentMemberIndex = -1; // index into steps
         let shownMember = -1;        // council index currently on the card
@@ -271,13 +276,13 @@
                     </div>`;
         }
 
-        function renderNew(member, stage) {
-            if (stage === 'previous') {
-                newPeople.innerHTML = member.names.map(() => '<div class="mystery">?</div>').join('');
-                return;
-            }
+        // Shows the first `count` new names; the rest stay as "?". Only the latest one pops in.
+        function renderNew(member, stage, count = 0) {
+            const shown = stage === 'previous' ? 0 : count;
             const photos = Array.isArray(member.photo) ? member.photo : [member.photo];
-            newPeople.innerHTML = member.names.map((name, i) => personHTML('new', name, photos[i])).join('');
+            newPeople.innerHTML = member.names.map((name, i) =>
+                i < shown ? personHTML(i === shown - 1 ? 'new pop' : 'new', name, photos[i])
+                          : '<div class="mystery">?</div>').join('');
         }
 
         async function displayMember(index) {
@@ -289,7 +294,7 @@
             // Same position, just moving between "previous" and "new": swap in place
             if (step && step.i === shownMember && step.stage !== 'card' && shownStage !== 'card'
                 && revealCard.style.opacity === '1') {
-                renderNew(council[step.i], step.stage);
+                renderNew(council[step.i], step.stage, step.count);
                 shownStage = step.stage;
                 return;
             }
@@ -327,7 +332,7 @@
                 renderSpotlight(member);
             } else {
                 prevPeople.innerHTML = member.previous.map(p => personHTML('prev', p.name, p.photo, p.role)).join('');
-                renderNew(member, step.stage);
+                renderNew(member, step.stage, step.count);
             }
 
             // Show the new card with animation
@@ -345,11 +350,14 @@
             // One card per person, so group positions (Core Members, Club Heads) show everyone individually
             const ordered = [...council].sort((a, b) =>
                 (finalFirst.includes(b.position) ? 1 : 0) - (finalFirst.includes(a.position) ? 1 : 0));
-            const people = ordered.flatMap(member => member.names.map((name, i) => ({
-                position: member.names.length > 1 ? member.position.replace(/s$/, '') : member.position,
-                names: [name],
-                photo: Array.isArray(member.photo) ? member.photo[i] : member.photo
-            })));
+            const byName = new Map();
+            ordered.forEach(member => member.names.forEach((name, i) => {
+                const position = member.names.length > 1 ? member.position.replace(/s$/, '') : member.position;
+                const photo = Array.isArray(member.photo) ? member.photo[i] : member.photo;
+                if (byName.has(name)) byName.get(name).position += ' & ' + position;
+                else byName.set(name, { position, names: [name], photo });
+            }));
+            const people = [...byName.values()];
 
             people.forEach((member, index) => {
                 const card = document.createElement('div');
